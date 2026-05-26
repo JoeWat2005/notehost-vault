@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Initialise this folder:
-#   1. Configure JupyterLab to open .md files in Markdown Preview (vLab-friendly,
-#      no-op anywhere else).
-#   2. Batch-send every .md in the current directory that does NOT already have
-#      an equivalent in markdownvault/.
+#   1. Configure JupyterLab to open .md in Markdown Preview -- skipped silently
+#      if `jupyter` isn't installed, so off vLab this is a no-op.
+#   2. Batch-send every .md in the current directory that does NOT already
+#      have an equivalent in markdownvault/.
 #
 #   bash init.sh
 #
@@ -18,18 +18,18 @@ esac
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WORK_DIR="$(pwd)"
 
-# --- 1. JupyterLab default-viewer config (idempotent, harmless off vLab) ---
-JL_DIR="$HOME/.jupyter/lab/user-settings/@jupyterlab/docmanager-extension"
-JL_FILE="$JL_DIR/plugin.jupyterlab-settings"
-mkdir -p "$JL_DIR"
-cat > "$JL_FILE" <<'EOF'
+# --- 1. JupyterLab default-viewer config (only when jupyter is installed) ---
+if command -v jupyter >/dev/null 2>&1; then
+  JL_DIR="$HOME/.jupyter/lab/user-settings/@jupyterlab/docmanager-extension"
+  mkdir -p "$JL_DIR"
+  cat > "$JL_DIR/plugin.jupyterlab-settings" <<'EOF'
 {
     "defaultViewers": {
         "markdown": "Markdown Preview"
     }
 }
 EOF
-echo "JupyterLab: Markdown Preview set as default for .md  ($JL_FILE)"
+fi
 
 # --- 2. Batch-process new .md files in $WORK_DIR ---
 if [ -z "${NOTES_URL:-}" ] || [ -z "${NOTES_TOKEN:-}" ]; then
@@ -63,8 +63,6 @@ for src in "$WORK_DIR"/*.md; do
 
   existing="$(find "$MV_DIR" -type f \( -name "$name" -o -name "${stem}_notes.md" \) -print -quit 2>/dev/null || true)"
   if [ -n "$existing" ]; then
-    rel="${existing#$WORK_DIR/}"
-    echo "SKIP $name (covered by $rel)"
     SKIPPED=$((SKIPPED + 1))
     continue
   fi
@@ -85,14 +83,13 @@ for src in "$WORK_DIR"/*.md; do
     continue
   fi
 
-  echo "OK   $name -> markdownvault/$name"
   PROCESSED=$((PROCESSED + 1))
 done
 
-if [ "$TOUCHED" -eq 0 ]; then
-  echo "No .md files in $WORK_DIR"
+if [ "$FAILED" -eq 0 ]; then
+  echo "OK initialised"
+else
+  echo "FAILED ($FAILED errors)"
 fi
-
-echo ""
 echo "Summary: processed=$PROCESSED skipped=$SKIPPED failed=$FAILED"
 exit "$FAILED"
