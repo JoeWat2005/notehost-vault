@@ -1,3 +1,6 @@
+> [!WARNING]
+> **Deprecated: no longer maintained.** Last updated in May 2026; kept for reference.
+
 # notehost-vault
 
 Bash client scripts for storing and syncing Markdown notes on [notehost.net](https://notehost.net), plus a personal vault of Haskell revision notes.
